@@ -4,6 +4,9 @@ on:
   push:
     branches: [ main ]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: windows-latest
@@ -20,10 +23,13 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
       # ── NithiriumAgent ──────────────────────────────────────────
       - name: Build NithiriumAgent (Gradle)
         working-directory: NithiriumAgent
-        run: ./gradlew.bat shadowJar
+        run: gradle shadowJar
 
       # ── NithiriumCore ───────────────────────────────────────────
       - name: Initialize BGFX submodule
@@ -32,13 +38,11 @@ jobs:
 
       - name: Configure NithiriumCore (CMake)
         working-directory: NithiriumCore
-        run: |
-          cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
 
       - name: Build NithiriumCore (CMake)
         working-directory: NithiriumCore
-        run: |
-          cmake --build build --config Release --target install
+        run: cmake --build build --config Release --target install
 
       # ── Upload artifacts ────────────────────────────────────────
       - name: Upload Nithirium artifacts
