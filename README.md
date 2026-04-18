@@ -1,73 +1,151 @@
-Nithirium
+<div align="center">
 
-Java FPS. Bedrock performance. For the PC you actually have.
+# ⚡ NITHIRIUM
 
-Nithirium is a native C++ rendering engine replacement for Minecraft Java Edition 1.18.2. Instead of patching Java's renderer like every other optimization mod, Nithirium completely bypasses it — intercepting Minecraft's rendering pipeline via a Java agent and redirecting it to a custom C++ engine built on BGFX.
-The result: Bedrock-level FPS on hardware that Java was never designed to run well on.
+### *Java FPS. Bedrock performance. For the PC you actually have.*
 
-Why Nithirium?
-Every optimization mod out there — Sodium, Optifine, Lithium — works within the limits of the JVM. They make Java faster. Nithirium gets rid of Java for rendering entirely.
-The JVM's Garbage Collector causes lag spikes. Manual C++ memory management doesn't. That's the core idea.
-Target audience: Players with low-end hardware (Celeron, Pentium, old i3, 2-4GB RAM, integrated graphics) who want to play on Java servers without the lag.
+[![Build](https://img.shields.io/github/actions/workflow/status/cocosetemamo-cpu/Nithirium/build.yml?style=for-the-badge&logo=github&label=BUILD&color=black)](https://github.com/cocosetemamo-cpu/Nithirium/actions)
+[![Version](https://img.shields.io/badge/VERSION-0.1--dev-red?style=for-the-badge)](https://github.com/cocosetemamo-cpu/Nithirium)
+[![Minecraft](https://img.shields.io/badge/MINECRAFT-1.18.2-green?style=for-the-badge&logo=minecraft)](https://minecraft.net)
+[![License](https://img.shields.io/badge/LICENSE-MIT-blue?style=for-the-badge)](LICENSE)
 
-How it works
+<br/>
+
+> **Nithirium replaces Minecraft Java's rendering engine with a native C++ engine.**
+> Not a mod. Not a patch. A full renderer replacement.
+
+</div>
+
+---
+
+## 🤔 Why does this exist?
+
+Every optimization mod out there — Sodium, Optifine, Lithium — works **within** the limits of the JVM. They make Java faster. **Nithirium gets rid of Java for rendering entirely.**
+
+The JVM's Garbage Collector causes lag spikes. Manual C++ memory management doesn't.
+
+```
+❌  Vanilla Minecraft   →  constant GC lag spikes, low FPS
+⚠️  Sodium + Lithium    →  better, but still limited by the JVM
+✅  Nithirium           →  C++ renderer, zero GC interference
+```
+
+**Target:** Players with Celeron / Pentium / old i3, 2-4GB RAM, integrated graphics who want to play on Java servers without the lag.
+
+---
+
+## 🏗️ Architecture
+
+```
 Minecraft Java 1.18.2 (vanilla)
         │
         │  -javaagent: NithiriumAgent.jar
         ▼
-NithiriumAgent (Java)
-        │
-        ├── ASM bytecode transformer → intercepts LevelRenderer + ChunkRenderer
-        ├── JNI → one-time init only
-        └── Direct ByteBuffer (shared memory, zero GC pressure)
-        │
-        ▼
-NithiriumCore (C++)
-        ├── BGFX (auto-selects OpenGL / Vulkan / DX11 based on hardware)
-        ├── Chunk mesher with SIMD
-        ├── Frustum culling
-        ├── Draw call batching
-        └── Zero garbage collection interference
-Java handles game logic. C++ handles rendering. Shared memory connects them with zero overhead.
+┌─────────────────────────────┐
+│     NithiriumAgent (Java)   │
+│  ┌─────────────────────┐    │
+│  │ ASM Transformer     │    │  ← intercepts LevelRenderer
+│  │ JNI Bridge          │    │  ← one-time init only
+│  │ Shared Memory       │    │  ← zero GC pressure
+│  └─────────────────────┘    │
+└────────────┬────────────────┘
+             │
+             ▼
+┌─────────────────────────────┐
+│    NithiriumCore (C++)      │
+│  ┌─────────────────────┐    │
+│  │ BGFX                │    │  ← auto-picks best backend
+│  │ Chunk Mesher (SIMD) │    │  ← AVX2 / SSE2 fallback
+│  │ Frustum Culling     │    │
+│  │ Draw Call Batching  │    │
+│  └─────────────────────┘    │
+└─────────────────────────────┘
+             │
+             ▼
+   OpenGL / Vulkan / DX11
+   (auto-selected by BGFX)
+```
 
-Compatibility
-ThingCompatible?Vanilla servers✅ YesCracked / offline servers✅ YesClient-side mods❌ No (intentional)Forge / Fabric mods❌ No (intentional)Minecraft version1.18.2 only (for now)
-Server-side mods work fine — the server doesn't care how you render the world.
+Java handles **game logic**. C++ handles **rendering**. Shared memory connects them with zero overhead.
 
-Stack
+---
 
-Java 17 — agent, ASM hooks, JNI bridge
-ASM 9.x — bytecode interception
-C++17 — rendering engine
-BGFX — rendering abstraction (OpenGL 2.1 / 3.3 / Vulkan / DX11, auto-selected)
-Shared memory — zero-copy communication between Java and C++
-GitHub Actions — builds everything in the cloud
+## ✅ Compatibility
 
+| | Compatible? |
+|---|---|
+| 🌐 Vanilla servers | ✅ Yes |
+| 🏴‍☠️ Cracked / offline servers | ✅ Yes |
+| 🧩 Client-side mods | ❌ No (intentional) |
+| ⚙️ Forge / Fabric | ❌ No (intentional) |
+| 🎮 Minecraft version | 1.18.2 only (for now) |
 
-Roadmap
-VersionStatusDescriptionv0.1🔨 In progressBase structure, ASM hooks, BGFX windowv0.2📋 PlannedExtract real chunk data from Minecraftv0.3📋 PlannedRender first chunk in BGFXv0.4📋 PlannedReplicate vanilla 1.18.2 shadersv0.5📋 PlannedFull world renderingv1.0📋 PlannedNLauncher — install and play in one click
+> Server-side mods work fine — the server doesn't care how you render the world.
 
-Building
-Nithirium is built entirely via GitHub Actions. You don't need Visual Studio or MinGW locally.
-Just push to the repo and download the artifacts from the Actions tab:
+---
 
+## 🛠️ Stack
+
+| Component | Technology |
+|---|---|
+| Agent & Hooks | Java 17 + ASM 9.x |
+| Java↔C++ Bridge | JNI + Direct ByteBuffer |
+| Rendering Engine | C++17 + BGFX |
+| Rendering Backend | OpenGL 2.1 / 3.3 / Vulkan / DX11 (auto) |
+| Build System | GitHub Actions (no local compiler needed) |
+
+---
+
+## 🗺️ Roadmap
+
+```
+v0.1  🔨  Base structure, ASM hooks, BGFX window
+v0.2  📋  Extract real chunk data from Minecraft
+v0.3  📋  Render first chunk in BGFX
+v0.4  📋  Replicate vanilla 1.18.2 shaders exactly
+v0.5  📋  Full world rendering
+v1.0  📋  NLauncher — install and play in one click
+```
+
+---
+
+## 📦 Building
+
+Nithirium builds entirely on **GitHub Actions**. You don't need Visual Studio or MinGW.
+
+Push to the repo → download artifacts from the Actions tab:
+
+```
 NithiriumAgent.jar
 NithiriumCore.dll
+```
 
+---
 
-Installing (manual, pre-NLauncher)
+## 🚀 Installing (manual, pre-NLauncher)
 
-Download NithiriumAgent.jar and NithiriumCore.dll from the latest GitHub Actions run
-Place both files in a folder, e.g. C:\Nithirium\
-In your Minecraft launcher (TLauncher Legacy, SKLauncher, etc), edit your 1.18.2 installation
-Add to JVM arguments:
+**1.** Download `NithiriumAgent.jar` and `NithiriumCore.dll` from the latest Actions run
 
+**2.** Place both in a folder, e.g. `C:\Nithirium\`
+
+**3.** In TLauncher Legacy / SKLauncher, edit your 1.18.2 installation and add to JVM args:
+```
 -javaagent:"C:\Nithirium\NithiriumAgent.jar" -Djava.library.path="C:\Nithirium"
+```
 
-Launch and enjoy
+**4.** Launch and enjoy
 
+---
 
-Status
-Early development. Nothing renders yet. The hook infrastructure is in place — actual rendering replacement is next.
+## ⚠️ Status
 
-Built for the players who can't afford Bedrock but deserve good FPS.
+> Early development. Nothing renders yet.
+> The hook infrastructure is in place — actual rendering replacement is the next milestone.
+
+---
+
+<div align="center">
+
+*Built for the players who can't afford Bedrock but deserve good FPS.*
+
+</div>
